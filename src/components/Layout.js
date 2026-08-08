@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import UserSidebar from './UserSidebar';
-import ConsultantSidebar from './StuffSidebar';
+import ConsultantSidebar from './ConsultantSidebar';
 
 const Layout = ({ children }) => {
   const storedUser = localStorage.getItem('user');

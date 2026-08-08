@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import LoginPage from './pages/Login';
-import SignUp from './pages/signup';
+import SignUp from './pages/SignUp';
 
 jest.mock('axios', () => ({ post: jest.fn() }));
 

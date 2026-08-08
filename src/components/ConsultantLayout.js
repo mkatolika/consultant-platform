@@ -1,5 +1,5 @@
 import React from "react";
-import ConsultantSidebar from "./StuffSidebar";
+import ConsultantSidebar from "./ConsultantSidebar";
 import UpcomingApts from "../components/UpcomingApts"; 
 
 
