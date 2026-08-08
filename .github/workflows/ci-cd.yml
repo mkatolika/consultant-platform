@@ -21,8 +21,8 @@ env:
   DEPENDENCIES_ARTIFACT: frontend-node-modules
 
 jobs:
-  dependencies:
-    name: Dependencies
+  npm-install:
+    name: npm-install
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -49,8 +49,8 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  build-candidate:
-    name: Build candidate once
+  frontend-docker-candidate-build:
+    name: frontend-docker-candidate-build
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -91,9 +91,9 @@ jobs:
           retention-days: 2
           if-no-files-found: error
 
-  unit-tests:
-    name: Unit tests
-    needs: dependencies
+  frontend-unit-test:
+    name: frontend-unit-test
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -120,9 +120,9 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  lint:
-    name: Lint and static quality
-    needs: dependencies
+  frontend-lint:
+    name: frontend-lint
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -139,9 +139,9 @@ jobs:
       - name: Run existing ESLint configuration
         run: npx --no-install eslint src --max-warnings=20
 
-  sast:
-    name: SAST (CodeQL)
-    needs: build-candidate
+  frontend-sast:
+    name: frontend-sast
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -160,9 +160,9 @@ jobs:
         with:
           category: /language:javascript-typescript
 
-  secret-detection:
-    name: Secret detection (Gitleaks)
-    needs: build-candidate
+  frontend-secret-detection:
+    name: frontend-secret-detection
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -177,9 +177,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  dependency-scan:
-    name: Dependency scan (Trivy)
-    needs: build-candidate
+  frontend-dependency-scanning:
+    name: frontend-dependency-scanning
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -195,9 +195,9 @@ jobs:
           exit-code: '1'
           format: table
 
-  container-scan:
-    name: Container scan (Trivy)
-    needs: build-candidate
+  frontend-container-scanning:
+    name: frontend-container-scanning
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -219,9 +219,9 @@ jobs:
           exit-code: '1'
           format: table
 
-  dast:
-    name: DAST (OWASP ZAP baseline)
-    needs: build-candidate
+  frontend-dast:
+    name: frontend-dast
+    needs: [npm-install, frontend-docker-candidate-build]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -260,17 +260,17 @@ jobs:
         if: always()
         run: docker rm --force frontend-candidate || true
 
-  version:
-    name: Generate immutable version
+  frontend-version-bump:
+    name: frontend-version-bump
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
-      - unit-tests
-      - lint
-      - sast
-      - secret-detection
-      - dependency-scan
-      - container-scan
-      - dast
+      - frontend-unit-test
+      - frontend-lint
+      - frontend-sast
+      - frontend-secret-detection
+      - frontend-dependency-scanning
+      - frontend-container-scanning
+      - frontend-dast
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -292,18 +292,18 @@ jobs:
           retention-days: 2
           if-no-files-found: error
 
-  promote-and-push:
-    name: Promote candidate to Docker Hub
+  frontend-docker-publish:
+    name: frontend-docker-publish
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
-      - build-candidate
-      - unit-tests
-      - lint
-      - sast
-      - secret-detection
-      - dependency-scan
-      - container-scan
-      - dast
+      - frontend-docker-candidate-build
+      - frontend-unit-test
+      - frontend-lint
+      - frontend-sast
+      - frontend-secret-detection
+      - frontend-dependency-scanning
+      - frontend-container-scanning
+      - frontend-dast
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -335,17 +335,15 @@ jobs:
           docker push "$TARGET:$GIT_SHA"
           docker push "$TARGET:latest"
 
-  deploy:
-    name: Deploy exact version to Azure Container Apps
+  deploy-dev:
+    name: deploy-dev
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [promote-and-push, version]
+    needs: [frontend-docker-publish, frontend-version-bump]
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
       id-token: write
-    outputs:
-      fqdn: ${{ steps.deploy.outputs.fqdn }}
     steps:
       - name: Sign in to Azure with OIDC
         uses: azure/login@v2
@@ -358,7 +356,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER_NAME }}
           IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'consultant-services-frontend' }}
-          VERSION: ${{ needs.version.outputs.version }}
+          VERSION: ${{ needs.frontend-version-bump.outputs.version }}
           RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           CONTAINER_APP_NAME: ${{ vars.AZURE_CONTAINER_APP_NAME }}
         run: |
@@ -369,36 +367,8 @@ jobs:
             --image "$IMAGE" \
             --output none
           FQDN=$(az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.configuration.ingress.fqdn --output tsv)
-          echo "fqdn=$FQDN" >> "$GITHUB_OUTPUT"
-
-  smoke-test:
-    name: Verify Azure deployment
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy, version]
-    runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Sign in to Azure with OIDC
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Verify image and public endpoint
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER_NAME }}
-          IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'consultant-services-frontend' }}
-          VERSION: ${{ needs.version.outputs.version }}
-          FQDN: ${{ needs.deploy.outputs.fqdn }}
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          CONTAINER_APP_NAME: ${{ vars.AZURE_CONTAINER_APP_NAME }}
-        run: |
-          EXPECTED_IMAGE="docker.io/$DOCKERHUB_USER/$IMAGE_NAME:$VERSION"
           ACTUAL_IMAGE=$(az containerapp show --name "$CONTAINER_APP_NAME" --resource-group "$RESOURCE_GROUP" --query properties.template.containers[0].image --output tsv)
-          test "$ACTUAL_IMAGE" = "$EXPECTED_IMAGE"
+          test "$ACTUAL_IMAGE" = "$IMAGE"
           curl --fail --show-error --silent \
             --retry 12 --retry-delay 10 --retry-all-errors \
             "https://$FQDN/" >/dev/null

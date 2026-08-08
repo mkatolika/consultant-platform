@@ -37,13 +37,18 @@ The workflow at `.github/workflows/ci-cd.yml` runs on pull requests and pushes t
 
 Pipeline stages:
 
-1. Restore the locked npm dependency tree and build one SHA-tagged Docker candidate in parallel.
-2. Save the candidate as `candidate-image.tar.gz` with build and version metadata.
-3. Run unit tests, ESLint, CodeQL, Gitleaks, Trivy dependency scanning, Trivy container scanning, and OWASP ZAP checks in parallel.
-4. Make version generation and Docker Hub promotion depend directly on every required check.
-5. Generate the immutable version and promote the approved candidate to Docker Hub in parallel.
-6. Deploy only after both versioning and Docker Hub promotion succeed.
-7. Verify Azure references the expected image and that the public frontend responds successfully.
+```text
+BUILD                         SANITY CHECKS                    ARTIFACT PUBLISH            DEPLOY
+npm-install ----------------+ frontend-unit-test -----------+ frontend-version-bump ---+
+                            + frontend-lint                  |                           + deploy-dev
+frontend-docker-candidate --+ frontend-sast                  | frontend-docker-publish --+
+                            + frontend-secret-detection      |
+                            + frontend-dependency-scanning   |
+                            + frontend-container-scanning    |
+                            + frontend-dast -----------------+
+```
+
+Both build jobs start in parallel. Every sanity check waits for both build jobs. Version bump and Docker publishing wait for every sanity check and then run in parallel. Deployment, including image and endpoint verification, waits for both artifact-publish jobs.
 
 Pull requests stop after the tests and security scans. They never version, push, or deploy images. Main-branch deployments use the protected `production` GitHub Environment.
 
