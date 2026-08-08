@@ -1,70 +1,106 @@
-# Getting Started with Create React App
+# Consultant & Services Platform Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[![Frontend CI/CD](https://github.com/mkatolika/consultant-platform/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/mkatolika/consultant-platform/actions/workflows/ci-cd.yml)
 
-## Available Scripts
+React frontend for the Consultant & Services Platform. It provides authentication, role-based dashboards, consultant and service discovery, bookings, appointment management, and reporting against the ASP.NET Core API.
 
-In the project directory, you can run:
+## Local development
 
-### `npm start`
+Requirements: Node.js 20 or newer and npm.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npm ci
+npm start
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Run the smoke tests and production build with:
 
-### `npm test`
+```bash
+CI=true npm test -- --watchAll=false
+npm run build
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Docker
 
-### `npm run build`
+The production image uses a Node 20 build stage and serves the compiled SPA with Nginx. Nginx falls back to `index.html` for React Router routes and exposes port 80.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+docker build -t consultant-services-frontend .
+docker run --rm -p 8080:80 consultant-services-frontend
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+TLS verification is enabled for npm in Docker by default. Networks that intercept TLS may temporarily build with `--build-arg NPM_STRICT_SSL=false`; a trusted CA supplied to the build is preferable for shared CI.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## CI/CD
 
-### `npm run eject`
+The workflow at `.github/workflows/ci-cd.yml` runs on pull requests and pushes to `main`, with manual dispatch support.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Pipeline stages:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Restore the locked npm dependency tree and publish it as a short-lived artifact.
+2. Build one immutable Docker candidate tagged with the Git commit SHA.
+3. Save the image as `candidate-image.tar.gz` and upload it with build metadata.
+4. Run unit tests, ESLint, CodeQL, Gitleaks, Trivy dependency scanning, Trivy container scanning, and an OWASP ZAP baseline in parallel.
+5. Require every test and security job to pass.
+6. On `main`, generate an immutable version, load and retag the approved candidate, and push it to Docker Hub.
+7. Deploy the exact version tag to Azure Container Apps using OIDC.
+8. Verify Azure references the expected image and that the public frontend responds successfully.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Pull requests stop after the security gate. They never version, push, or deploy images. Main-branch deployments use the protected `production` GitHub Environment.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Artifact promotion
 
-## Learn More
+The Docker image is built exactly once per workflow run:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```text
+Docker build (candidate:<git-sha>)
+  -> docker save + GitHub artifact
+  -> load and scan exact candidate
+  -> security gate
+  -> load and retag exact candidate
+  -> Docker Hub version/SHA/latest tags
+  -> Azure deploy exact version tag
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+No downstream job runs `docker build`. The version is derived from the `major.minor` portion of `package.json` plus `GITHUB_RUN_NUMBER`; for example, package version `0.1.0` at run 42 produces `0.1.42`. It does not modify or commit `package.json`, avoiding CI loops and branch-protection conflicts.
 
-### Code Splitting
+### Required GitHub secrets
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Configure these repository or production-environment secrets:
 
-### Analyzing the Bundle Size
+- `DOCKERHUB_USER_NAME`: Docker Hub username, consistent with the backend convention.
+- `DOCKERHUB_TOKEN`: Docker Hub access token with permission to push the frontend image.
+- `AZURE_CLIENT_ID`: client ID of the Azure federated identity.
+- `AZURE_TENANT_ID`: Azure tenant ID.
+- `AZURE_SUBSCRIPTION_ID`: Azure subscription ID.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The Azure identity needs permission to update and read the target Container App. Configure its federated credential for this repository and the `production` GitHub Environment.
 
-### Making a Progressive Web App
+### Required GitHub variables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- `AZURE_RESOURCE_GROUP`: resource group containing the frontend Container App.
+- `AZURE_CONTAINER_APP_NAME`: name of the frontend Azure Container App.
 
-### Advanced Configuration
+Optional variables:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- `DOCKER_IMAGE_NAME`: Docker Hub repository name. Defaults to `consultant-services-frontend`.
+- `NPM_STRICT_SSL`: defaults to `true`. Set to `false` only if a self-hosted runner uses an intercepting certificate and no trusted CA can be provided.
 
-### Deployment
+The resulting default image name is:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```text
+docker.io/<DOCKERHUB_USER_NAME>/consultant-services-frontend:<version>
+```
 
-### `npm run build` fails to minify
+The Azure resource group and Container App name are variables because the backend repository does not currently define an Azure deployment convention to reuse.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Security behavior
+
+- CodeQL analyzes JavaScript and TypeScript source.
+- Gitleaks scans full Git history for secrets.
+- Trivy fails dependency and image scans on fixed HIGH or CRITICAL vulnerabilities.
+- OWASP ZAP scans the running candidate. Informational and warning-level baseline findings are reported; confirmed failure-level findings fail the job.
+- Unit-test coverage and the ZAP HTML report are retained as workflow artifacts.
+- Deployment credentials are unavailable to pull-request jobs.
+
+Current ESLint warnings are allowed up to the explicit threshold of 20, while lint errors still fail CI. This threshold should be reduced to zero after the existing warnings are corrected.

@@ -1,0 +1,10 @@
+node_modules
+build
+coverage
+.git
+.gitignore
+.node-runtime
+.vscode
+*.log
+node-*-win-x64.zip
+README.md

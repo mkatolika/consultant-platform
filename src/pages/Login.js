@@ -52,9 +52,10 @@ const LoginPage = () => {
         <h4 className="text-center mb-4">Welcome Back</h4>
         <form onSubmit={handleLogin}>
           <div className="mb-3">
-            <label className="form-label">Email address</label>
+            <label className="form-label" htmlFor="username">Email address</label>
             <input
               type="email"
+              id="username"
               className="form-control"
               placeholder="you@example.com"
               value={username}
@@ -64,11 +65,12 @@ const LoginPage = () => {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Password</label>
+            <label className="form-label" htmlFor="password">Password</label>
             <input
               type="password"
+              id="password"
               className="form-control"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
