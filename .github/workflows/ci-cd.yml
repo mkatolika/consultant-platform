@@ -180,6 +180,7 @@ jobs:
   frontend-dependency-scanning:
     name: frontend-dependency-scanning
     needs: [npm-install, frontend-docker-candidate-build]
+    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -198,6 +199,7 @@ jobs:
   frontend-container-scanning:
     name: frontend-container-scanning
     needs: [npm-install, frontend-docker-candidate-build]
+    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

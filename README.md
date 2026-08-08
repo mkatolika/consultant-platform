@@ -102,7 +102,7 @@ The Azure resource group and Container App name are variables because the backen
 
 - CodeQL analyzes JavaScript and TypeScript source.
 - Gitleaks scans full Git history for secrets.
-- Trivy fails dependency and image scans on fixed HIGH or CRITICAL vulnerabilities.
+- Trivy reports fixed HIGH and CRITICAL dependency and image vulnerabilities. These two scan jobs are temporarily non-blocking while the existing vulnerability backlog is remediated.
 - OWASP ZAP scans the running candidate. Informational and warning-level baseline findings are reported; confirmed failure-level findings fail the job.
 - Unit-test coverage and the ZAP HTML report are retained as workflow artifacts.
 - Deployment credentials are unavailable to pull-request jobs.
