@@ -264,7 +264,7 @@ jobs:
 
   frontend-version-bump:
     name: frontend-version-bump
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs:
       - frontend-unit-test
       - frontend-lint
@@ -296,7 +296,7 @@ jobs:
 
   frontend-docker-publish:
     name: frontend-docker-publish
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs:
       - frontend-unit-test
       - frontend-lint
@@ -338,7 +338,7 @@ jobs:
 
   deploy-dev:
     name: deploy-dev
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [frontend-docker-publish, frontend-version-bump]
     runs-on: ubuntu-latest
     environment: production
