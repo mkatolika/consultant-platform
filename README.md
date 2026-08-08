@@ -37,16 +37,15 @@ The workflow at `.github/workflows/ci-cd.yml` runs on pull requests and pushes t
 
 Pipeline stages:
 
-1. Restore the locked npm dependency tree and publish it as a short-lived artifact.
-2. Build one immutable Docker candidate tagged with the Git commit SHA.
-3. Save the image as `candidate-image.tar.gz` and upload it with build metadata.
-4. Run unit tests, ESLint, CodeQL, Gitleaks, Trivy dependency scanning, Trivy container scanning, and an OWASP ZAP baseline in parallel.
-5. Require every test and security job to pass.
-6. On `main`, generate an immutable version, load and retag the approved candidate, and push it to Docker Hub.
-7. Deploy the exact version tag to Azure Container Apps using OIDC.
-8. Verify Azure references the expected image and that the public frontend responds successfully.
+1. Restore the locked npm dependency tree and build one SHA-tagged Docker candidate in parallel.
+2. Save the candidate as `candidate-image.tar.gz` with build and version metadata.
+3. Run unit tests, ESLint, CodeQL, Gitleaks, Trivy dependency scanning, Trivy container scanning, and OWASP ZAP checks in parallel.
+4. Make version generation and Docker Hub promotion depend directly on every required check.
+5. Generate the immutable version and promote the approved candidate to Docker Hub in parallel.
+6. Deploy only after both versioning and Docker Hub promotion succeed.
+7. Verify Azure references the expected image and that the public frontend responds successfully.
 
-Pull requests stop after the security gate. They never version, push, or deploy images. Main-branch deployments use the protected `production` GitHub Environment.
+Pull requests stop after the tests and security scans. They never version, push, or deploy images. Main-branch deployments use the protected `production` GitHub Environment.
 
 ### Artifact promotion
 
@@ -56,13 +55,13 @@ The Docker image is built exactly once per workflow run:
 Docker build (candidate:<git-sha>)
   -> docker save + GitHub artifact
   -> load and scan exact candidate
-  -> security gate
+  -> all required tests and scans pass
   -> load and retag exact candidate
   -> Docker Hub version/SHA/latest tags
   -> Azure deploy exact version tag
 ```
 
-No downstream job runs `docker build`. The version is derived from the `major.minor` portion of `package.json` plus `GITHUB_RUN_NUMBER`; for example, package version `0.1.0` at run 42 produces `0.1.42`. It does not modify or commit `package.json`, avoiding CI loops and branch-protection conflicts.
+No downstream job runs `docker build`. Dependency restore and the candidate build start in parallel; after all checks pass, deterministic versioning and Docker Hub promotion also run in parallel. The version is derived from the `major.minor` portion of `package.json` plus `GITHUB_RUN_NUMBER`; for example, package version `0.1.0` at run 42 produces `0.1.42`. It does not modify or commit `package.json`, avoiding CI loops and branch-protection conflicts.
 
 ### Required GitHub secrets
 

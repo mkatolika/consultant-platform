@@ -51,7 +51,6 @@ jobs:
 
   build-candidate:
     name: Build candidate once
-    needs: dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -78,6 +77,8 @@ jobs:
             echo "CANDIDATE_TAG=$CANDIDATE_IMAGE:$GITHUB_SHA"
             echo "GIT_SHA=$GITHUB_SHA"
             echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER"
+            VERSION_BASE=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')")
+            echo "VERSION_BASE=$VERSION_BASE"
           } > build-metadata.env
 
       - name: Upload candidate image
@@ -92,7 +93,7 @@ jobs:
 
   unit-tests:
     name: Unit tests
-    needs: build-candidate
+    needs: dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -121,7 +122,7 @@ jobs:
 
   lint:
     name: Lint and static quality
-    needs: build-candidate
+    needs: dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -259,9 +260,9 @@ jobs:
         if: always()
         run: docker rm --force frontend-candidate || true
 
-  security-gate:
-    name: Security and test gate
-    if: always()
+  version:
+    name: Generate immutable version
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - unit-tests
       - lint
@@ -270,26 +271,6 @@ jobs:
       - dependency-scan
       - container-scan
       - dast
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require every gate to pass
-        env:
-          UNIT_TESTS: ${{ needs.unit-tests.result }}
-          LINT: ${{ needs.lint.result }}
-          SAST: ${{ needs.sast.result }}
-          SECRET_DETECTION: ${{ needs.secret-detection.result }}
-          DEPENDENCY_SCAN: ${{ needs.dependency-scan.result }}
-          CONTAINER_SCAN: ${{ needs.container-scan.result }}
-          DAST: ${{ needs.dast.result }}
-        run: |
-          for result in "$UNIT_TESTS" "$LINT" "$SAST" "$SECRET_DETECTION" "$DEPENDENCY_SCAN" "$CONTAINER_SCAN" "$DAST"; do
-            test "$result" = success
-          done
-
-  version:
-    name: Generate immutable version
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: security-gate
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -314,17 +295,21 @@ jobs:
   promote-and-push:
     name: Promote candidate to Docker Hub
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build-candidate, version]
+    needs:
+      - build-candidate
+      - unit-tests
+      - lint
+      - sast
+      - secret-detection
+      - dependency-scan
+      - container-scan
+      - dast
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: ${{ env.CANDIDATE_ARTIFACT }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: frontend-version
-          path: version
       - name: Load exact approved candidate
         run: |
           gunzip -c candidate-image.tar.gz | docker load
@@ -341,7 +326,7 @@ jobs:
           IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'consultant-services-frontend' }}
         run: |
           source build-metadata.env
-          VERSION=$(cat version/version.txt)
+          VERSION="$VERSION_BASE.$GITHUB_RUN_NUMBER"
           TARGET="docker.io/$DOCKERHUB_USER/$IMAGE_NAME"
           docker tag "$CANDIDATE_TAG" "$TARGET:$VERSION"
           docker tag "$CANDIDATE_TAG" "$TARGET:$GIT_SHA"
