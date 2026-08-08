@@ -296,7 +296,6 @@ jobs:
     name: frontend-docker-publish
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
-      - frontend-docker-candidate-build
       - frontend-unit-test
       - frontend-lint
       - frontend-sast
