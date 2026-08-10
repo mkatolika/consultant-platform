@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Spinner, Alert } from 'react-bootstrap';
 import AppointmentCalendar from './AppointmentCalendar';
@@ -12,7 +13,7 @@ const UserBookingsDashboard = () => {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          "https://localhost:7280/api/Booking/my-bookings", // ✅ correct API
+          `${API_BASE_URL}/api/Booking/my-bookings`, // ✅ correct API
           {
             headers: {
               Authorization: `Bearer ${token}`,

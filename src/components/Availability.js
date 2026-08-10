@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState, useEffect } from 'react';
 import { Form, Row, Col, Button, Card } from 'react-bootstrap';
 
@@ -19,7 +20,7 @@ const AvailabilityManager = ({ consultantId }) => {
   useEffect(() => {
     const fetchAvailability = async () => {
       try {
-        const res = await fetch(`/api/slots/by-consultant/${consultantId}`);
+        const res = await fetch(`${API_BASE_URL}/api/slots/by-consultant/${consultantId}`);
         if (!res.ok) throw new Error('Failed to fetch availability');
 
         const data = await res.json();
@@ -70,7 +71,7 @@ const AvailabilityManager = ({ consultantId }) => {
     }));
 
     try {
-      const res = await fetch(`/api/consultant-availability/${consultantId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/consultant-availability/${consultantId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

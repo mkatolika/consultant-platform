@@ -59,10 +59,10 @@ jobs:
 
       - name: Build immutable candidate
         env:
-          NPM_STRICT_SSL: ${{ vars.NPM_STRICT_SSL || 'true' }}
+          API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL || 'https://ca-qhawe-api-dev-001.wittytree-334dca11.southafricanorth.azurecontainerapps.io' }}
         run: |
           docker build \
-            --build-arg NPM_STRICT_SSL="$NPM_STRICT_SSL" \
+            --build-arg REACT_APP_API_BASE_URL="$API_BASE_URL" \
             --label org.opencontainers.image.revision="$GITHUB_SHA" \
             --tag "$CANDIDATE_IMAGE:$GITHUB_SHA" \
             .

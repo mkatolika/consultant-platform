@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -14,7 +15,7 @@ const AppointmentsPage = () => {
 
       try {
         const res = await axios.get(
-          'https://localhost:7280/api/Consultants/consultant/c542ca7a-a6e2-41a0-99c2-33cb9afced41',
+          `${API_BASE_URL}/api/Consultants/consultant/c542ca7a-a6e2-41a0-99c2-33cb9afced41`,
           {
             headers: {
               Authorization: `Bearer ${token}`, // send token in header

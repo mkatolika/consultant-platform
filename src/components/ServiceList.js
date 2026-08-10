@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Row, Col, Form } from 'react-bootstrap';
 import axios from 'axios';
@@ -11,7 +12,7 @@ const ServiceList = ({ onSelect }) => {
   const fetchServices = async (query = '') => {
     setLoading(true);
     try {
-      const response = await axios.get(`https://localhost:7280/api/Services?name=${query}`);
+      const response = await axios.get(`${API_BASE_URL}/api/Services?name=${query}`);
       setServices(response.data); // API returns array of services
     } catch (error) {
       console.error('Error fetching services:', error);

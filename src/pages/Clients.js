@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -20,7 +21,7 @@ const ClientsPage = () => {
   const [selectedClient, setSelectedClient] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5062/api/Users/GetAllUsers')
+    axios.get(`${API_BASE_URL}/api/Users/GetAllUsers`)
       .then(res => {
         const filtered = res.data
           .filter(u => u.role === 'Client')

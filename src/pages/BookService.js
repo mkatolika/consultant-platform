@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import ServiceList from "../components/ServiceList";
@@ -100,7 +101,7 @@ const BookingFlow = () => {
                   };
 
                   const response = await fetch(
-                    "https://localhost:7280/api/Booking/create",
+                    `${API_BASE_URL}/api/Booking/create`,
                     {
                       method: "POST",
                       headers: {

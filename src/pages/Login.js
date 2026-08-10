@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +12,7 @@ const LoginPage = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('https://localhost:7280/api/Auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/Auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

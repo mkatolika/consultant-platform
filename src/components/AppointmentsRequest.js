@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Table, Badge, Spinner, Card, Button } from 'react-bootstrap';
@@ -27,7 +28,7 @@ const ConsultantAppointments = () => {
   // Fetch appointments from API
   const fetchAppointments = () => {
     setLoading(true);
-    axios.get('https://localhost:7280/api/Consultants/consultant-bookings', {
+    axios.get(`${API_BASE_URL}/api/Consultants/consultant-bookings`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => setAppointments(res.data))
@@ -41,7 +42,7 @@ const ConsultantAppointments = () => {
 
   // Handle approve/reject
   const handleAction = (id, action) => {
-    const url = `https://localhost:7280/api/Consultants/${action}/${id}`;
+    const url = `${API_BASE_URL}/api/Consultants/${action}/${id}`;
     axios.patch(url, {}, {
       headers: { Authorization: `Bearer ${token}` }
     })

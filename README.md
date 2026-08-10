@@ -25,11 +25,9 @@ npm run build
 The production image uses a Node 20 build stage and serves the compiled SPA with Nginx. Nginx falls back to `index.html` for React Router routes and exposes port 80.
 
 ```bash
-docker build -t consultant-services-frontend .
+docker build --build-arg REACT_APP_API_BASE_URL=https://api.example.com -t consultant-services-frontend .
 docker run --rm -p 8080:80 consultant-services-frontend
 ```
-
-TLS verification is enabled for npm in Docker by default. Networks that intercept TLS may temporarily build with `--build-arg NPM_STRICT_SSL=false`; a trusted CA supplied to the build is preferable for shared CI.
 
 ## CI/CD
 
@@ -88,7 +86,7 @@ The Azure identity needs permission to update and read the target Container App.
 Optional variables:
 
 - `DOCKER_IMAGE_NAME`: Docker Hub repository name. Defaults to `consultant-services-frontend`.
-- `NPM_STRICT_SSL`: defaults to `true`. Set to `false` only if a self-hosted runner uses an intercepting certificate and no trusted CA can be provided.
+- `REACT_APP_API_BASE_URL`: API origin embedded in the production build. Defaults to the development Azure API.
 
 The resulting default image name is:
 

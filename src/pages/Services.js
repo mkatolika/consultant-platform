@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -7,7 +8,7 @@ const ServicesPage = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:5062/api/Services/Get-service-with-consultants')
+    axios.get(`${API_BASE_URL}/api/Services/Get-service-with-consultants`)
       .then(res => setServices(res.data))
       .catch(err => console.error('Failed to fetch services:', err));
   }, []);

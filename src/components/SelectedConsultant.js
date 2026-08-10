@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
@@ -14,7 +15,7 @@ const SelectConsultant = ({ service, onSelect }) => {
       setLoading(true);
       try {
         const response = await axios.get(
-          `https://localhost:7280/api/Consultants/by-service/${service.id}`
+          `${API_BASE_URL}/api/Consultants/by-service/${service.id}`
         );
         setConsultants(response.data);
       } catch (error) {

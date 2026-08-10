@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState } from 'react';
 import { Button, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
@@ -16,7 +17,7 @@ const SelectSlot = ({ consultant, onConfirm }) => {
       setLoading(true);
       try {
         const res = await axios.get(
-          `https://localhost:7280/api/Slots/by-consultant/${consultant.userId}`
+          `${API_BASE_URL}/api/Slots/by-consultant/${consultant.userId}`
         );
 
         // Only available slots

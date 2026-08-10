@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState, useEffect } from 'react';
 import { Card, Table, ButtonGroup, Button, Badge, Spinner } from 'react-bootstrap';
 
@@ -13,7 +14,7 @@ const MyBookings = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("https://localhost:7280/api/Client/my-bookings", {
+        const response = await fetch(`${API_BASE_URL}/api/Client/my-bookings`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -69,7 +70,7 @@ const MyBookings = () => {
   const handleCancel = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://localhost:7280/api/Booking/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/Booking/${id}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

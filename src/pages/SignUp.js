@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState } from "react";
 import axios from "axios";
 import {
@@ -44,7 +45,7 @@ function SignUp() {
 
     try {
       const response = await axios.post(
-  "https://localhost:7280/api/Auth/register",
+  `${API_BASE_URL}/api/Auth/register`,
   {
     username: formData.email,   // use email as username
     password: formData.password,
@@ -65,15 +66,26 @@ function SignUp() {
         confirmPassword: ""
       });
     } catch (err) {
-      // ✅ Show server error message if available
-      if (err.response) {
-        setError(
-          err.response.data?.message ||
-            err.response.data?.error ||
-            "Registration failed. Try again."
-        );
-      } else {
+      if (!err.response) {
         setError("Server not reachable. Please check your connection.");
+      } else {
+        const responseData = err.response.data;
+        let message;
+
+        if (Array.isArray(responseData)) {
+          message = responseData
+            .map((item) => item.description || item.message)
+            .filter(Boolean)
+            .join(" ");
+        } else if (responseData?.errors) {
+          message = Object.values(responseData.errors).flat().join(" ");
+        } else if (typeof responseData === "string") {
+          message = responseData;
+        } else {
+          message = responseData?.message || responseData?.error;
+        }
+
+        setError(message || "Registration failed. Try again.");
       }
     } finally {
       setLoading(false);

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -8,7 +9,7 @@ const StaffPage = () => {
   const [newService, setNewService] = useState({ name: '', staffId: '' });
 
   useEffect(() => {
-    axios.get('http://localhost:5062/api/Users/GetAllUsers')
+    axios.get(`${API_BASE_URL}/api/Users/GetAllUsers`)
       .then(res => {
         const approvedConsultants = res.data.filter(u => u.isConsultantApproved);
         const formattedStaff = approvedConsultants.map(u => ({

@@ -4,15 +4,12 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 
-# The local network uses TLS inspection that is trusted by Windows but not by
-# Linux containers. Package integrity is still verified by package-lock.json.
-ARG NPM_STRICT_SSL=true
-RUN npm config set strict-ssl ${NPM_STRICT_SSL} \
-    && npm ci --no-audit --no-fund \
-    && test -x node_modules/.bin/react-scripts
+RUN npm ci --no-audit --no-fund
 
 COPY public ./public
 COPY src ./src
+ARG REACT_APP_API_BASE_URL=https://ca-qhawe-api-dev-001.wittytree-334dca11.southafricanorth.azurecontainerapps.io
+ENV REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL
 RUN npm run build
 
 FROM nginx:1.27-alpine
