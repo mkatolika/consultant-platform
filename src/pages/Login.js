@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../config/api";
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useNavigate } from 'react-router-dom';
+import { dashboardForRoles } from '../auth/roles';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -27,23 +28,18 @@ const LoginPage = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify({ username: returnedUsername, roles }));
 
-      // Role-based routing
-      switch (roles[0]) {
-        case 'Admin':
-          navigate('/admin/dashboard');
-          break;
-        case 'Consultant':
-          navigate('/consultant/dashboard');
-          break;
-        case 'User':
-          navigate('/user/dashboard');
-          break;
-        default:
-          navigate('/dashboard');
+      const destination = dashboardForRoles(roles);
+
+      if (!destination) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        throw new Error('Your account has no recognized role.');
       }
+
+      navigate(destination, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
-      alert('Invalid credentials');
+      alert(error.message || 'Login failed');
     }
   };
 

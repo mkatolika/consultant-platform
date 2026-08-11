@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import LoginPage from './pages/Login';
 import SignUp from './pages/SignUp';
+import { dashboardForRoles, normalizeRoles } from './auth/roles';
 
 jest.mock('axios', () => ({ post: jest.fn() }));
 
@@ -38,4 +39,16 @@ test('renders the account registration form', () => {
   expect(screen.getByPlaceholderText('John')).toBeRequired();
   expect(screen.getByPlaceholderText('Doe')).toBeRequired();
   expect(screen.getByRole('button', { name: /^sign up$/i })).toBeInTheDocument();
+});
+test('normalizes role casing from the API', () => {
+  expect(normalizeRoles(['USER', 'Consultant'])).toEqual(['user', 'consultant']);
+});
+
+test('routes an uppercase USER role to the user dashboard', () => {
+  expect(dashboardForRoles(['USER'])).toBe('/user/dashboard');
+});
+
+test('does not route an unknown or missing role to an admin dashboard', () => {
+  expect(dashboardForRoles([])).toBeNull();
+  expect(dashboardForRoles(['unknown'])).toBeNull();
 });

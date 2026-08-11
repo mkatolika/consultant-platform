@@ -3,27 +3,23 @@ import { Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import UserSidebar from './UserSidebar';
 import ConsultantSidebar from './ConsultantSidebar';
+import { normalizeRoles, readStoredUser } from '../auth/roles';
 
 const Layout = ({ children }) => {
-  const storedUser = localStorage.getItem('user');
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  const user = readStoredUser();
 
-  // Redirect to login if no user found
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  const roles = normalizeRoles(user.roles ?? user.role);
+
   const renderSidebar = () => {
-    switch (user.role) {
-      case 'Admin':
-        return <Sidebar />;
-      case 'User':
-        return <UserSidebar />;
-      case 'Consultant':
-        return <ConsultantSidebar />;
-      default:
-        return null;
-    }
+    if (roles.includes('admin')) return <Sidebar />;
+    if (roles.includes('consultant')) return <ConsultantSidebar />;
+    if (roles.includes('user')) return <UserSidebar />;
+
+    return null;
   };
 
   return (
